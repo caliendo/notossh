@@ -110,13 +110,30 @@ def notify_terminal(opts, cmd_opts, args):
     return subprocess.Popen(notifier_command)
 
 
+def memonotify(f):
+    memo = {}
+    def g(*args, **kwargs):
+        title = args[2].split(":")[0]
+        try:
+            n = memo[title]
+        except KeyError:
+            n = None
+        memo[title] = f(*args, n=n, **kwargs)
+        return memo
+    return g
+
+
 # define the command used with linux systems
-def notify_dbus(opts, cmd_opts, args):
+@memonotify
+def notify_dbus(opts, cmd_opts, args, n=None):
     args = args.split(':')
-    n = Notify.Notification.new(':'.join(args[1:]), args[0], os.path.join(WORKDIR, 'irssi.png'))
+    if n is None:
+        n = Notify.Notification.new(args[0], ':'.join(args[1:]), os.path.join(WORKDIR, 'irssi.png'))
+    else:
+        n.update(args[0], ':'.join(args[1:]), os.path.join(WORKDIR, 'irssi.png'))
     n.set_category("im.received")
     n.show()
-    return 0
+    return n
 
 
 def notify_cli(opts, cmd_opts, args):
